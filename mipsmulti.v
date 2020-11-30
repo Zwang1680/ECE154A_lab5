@@ -50,8 +50,39 @@ module datapath(input        clk, reset,
                 output        zero,
                 output [31:0] adr, writedata, 
                 input [31:0] readdata);
-    
 
+    wire [31:0] pc1, pc2, aluout, instr, data, wd3. rd1, rd2, immext;
+    wire [4:0] a3;
+
+    flopren #(32) pc2(clk, reset, pcen, pc1, pc2);
+    mux2 #(32) adrin(pc2, aluout, iord, adr);
+    flopren #(32) instrin(clk, reset, irwrite, readdata, instr);
+    flopr #(32) datain(clk, reset, readdata, data);
+    op <= instr[31:26];
+    funct <= instr[5:0];
+    mux2 #(5) a3in(instr[20:16], instr[15:11], regdst, a3);
+    mux2 #(32) wd3in(aluout, data, memtoreg, wd3);
+    signext signextend(instr[15:0], immext);
+    regfile registerfile(clk, regwrite, instr[25:21], instr[20:16], a3, rd1, rd2);
+    
+endmodule
+
+module regfile(input  clk,
+    input  we3,
+    input  [4:0] ra1, ra2, wa3,
+    input  [31:0] wd3,
+    output  [31:0] rd1, rd2);
+    reg [31:0] rf[31:0];
+    // three ported register file
+    // read two ports combinationally
+    // write third port on rising edge of clk
+    // register 0 hardwired to 0
+    // note: for pipelined processor, write third port
+    // on falling edge of clk
+    always @(posedge clk)
+        if (we3) rf[wa3] <= wd3;
+        assign rd1 = (ra1 != 0) ? rf[ra1] : 0;
+        assign rd2 = (ra2 != 0) ? rf[ra2] : 0;
 endmodule
 
 module maindec(input clk, reset,
@@ -195,22 +226,22 @@ module maindec(input clk, reset,
 endmodule
 
 module aludec(input  [5:0] funct,
-input  [1:0] aluop,
-output reg [2:0] alucontrol);
-always @*
-case(aluop)
-2'b00: alucontrol <= 3'b010; // add (for lw/sw/addi)
-2'b01: alucontrol <= 3'b110; // sub (for beq)
-2'b11: alucontrol <= 3'b001; // or (for ori)
-default: case(funct) // R-type instructions
-6'b100000: alucontrol <= 3'b010; // add
-6'b100010: alucontrol <= 3'b110; // sub
-6'b100100: alucontrol <= 3'b000; // and
-6'b100101: alucontrol <= 3'b001; // or
-6'b101010: alucontrol <= 3'b111; // slt
-default: alucontrol <= 3'bxxx; // ???
-endcase
-endcase
+    input  [1:0] aluop,
+    output reg [2:0] alucontrol);
+    always @*
+    case(aluop)
+    2'b00: alucontrol <= 3'b010; // add (for lw/sw/addi)
+    2'b01: alucontrol <= 3'b110; // sub (for beq)
+    2'b11: alucontrol <= 3'b001; // or (for ori)
+    default: case(funct) // R-type instructions
+    6'b100000: alucontrol <= 3'b010; // add
+    6'b100010: alucontrol <= 3'b110; // sub
+    6'b100100: alucontrol <= 3'b000; // and
+    6'b100101: alucontrol <= 3'b001; // or
+    6'b101010: alucontrol <= 3'b111; // slt
+    default: alucontrol <= 3'bxxx; // ???
+    endcase
+    endcase
 endmodule
 
 module adder(input  [31:0] a, b,
@@ -218,10 +249,11 @@ output  [31:0] y);
 assign y = a + b;
 endmodule
 
-module sl2(input  [31:0] a,
-output  [31:0] y);
-// shift left by 2
-assign y = {a[29:0], 2'b00};
+module sl2 #(parameter WIDTH = 8)
+    (input  [WIDTH - 1:0] a,
+    output  [WIDTH - 1:0] y);
+    // shift left by 2
+    assign y = {a[WIDTH - 3:0], 2'b00};
 endmodule
 
 module signext(input  [15:0] a,
@@ -236,6 +268,15 @@ output reg [WIDTH-1:0] q);
 always @(posedge clk, posedge reset)
 if (reset) q <= 0;
 else q <= d;
+endmodule
+
+module flopren #(parameter WIDTH = 8)
+(input  clk, reset, en,
+input  [WIDTH-1:0] d,
+output reg [WIDTH-1:0] q);
+always @(posedge clk, posedge reset)
+if (reset) q <= 0;
+else if (en) q <= d;
 endmodule
 
 module mux2 #(parameter WIDTH = 8)
