@@ -51,7 +51,7 @@ module datapath(input        clk, reset,
                 output [31:0] adr, writedata, 
                 input [31:0] readdata);
 
-    wire [31:0] pc1, pc2, aluout, instr, data, wd3. rd1, rd2, rda, rdb, immext1, immext2, srca, srcb, four, aluresult, none, pcjump;
+    wire [31:0] pc1, pc2, aluout, instr, data, wd3, rd1, rd2, rda, rdb, immext1, immext2, srca, srcb, four, aluresult, none, pcjump;
     wire [4:0] a3;
     wire [27:0] jump;
     assign four = 'h4;
