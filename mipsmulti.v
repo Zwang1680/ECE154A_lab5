@@ -51,19 +51,33 @@ module datapath(input        clk, reset,
                 output [31:0] adr, writedata, 
                 input [31:0] readdata);
 
-    wire [31:0] pc1, pc2, aluout, instr, data, wd3. rd1, rd2, immext;
+    wire [31:0] pc1, pc2, aluout, instr, data, wd3. rd1, rd2, rda, rdb, immext1, immext2, srca, srcb, four, aluresult, none, pcjump;
     wire [4:0] a3;
+    wire [27:0] jump;
+    assign four = 'h4;
 
-    flopren #(32) pc2(clk, reset, pcen, pc1, pc2);
-    mux2 #(32) adrin(pc2, aluout, iord, adr);
-    flopren #(32) instrin(clk, reset, irwrite, readdata, instr);
-    flopr #(32) datain(clk, reset, readdata, data);
-    op <= instr[31:26];
-    funct <= instr[5:0];
-    mux2 #(5) a3in(instr[20:16], instr[15:11], regdst, a3);
-    mux2 #(32) wd3in(aluout, data, memtoreg, wd3);
-    signext signextend(instr[15:0], immext);
-    regfile registerfile(clk, regwrite, instr[25:21], instr[20:16], a3, rd1, rd2);
+    always @(posedge clk) begin
+        flopren #(32) pc2(clk, reset, pcen, pc1, pc2);
+        mux2 #(32) adrin(pc2, aluout, iord, adr);
+        flopren #(32) instrin(clk, reset, irwrite, readdata, instr);
+        flopr #(32) datain(clk, reset, readdata, data);
+        op <= instr[31:26];
+        funct <= instr[5:0];
+        mux2 #(5) a3in(instr[20:16], instr[15:11], regdst, a3);
+        mux2 #(32) wd3in(aluout, data, memtoreg, wd3);
+        signext signextend(instr[15:0], immext1);
+        sl2full immext2sl2(immext1, immext2);
+        sl2 jumpin(instr[25:0], jump);
+        pcjump = {pc2[31:28], jump};
+        regfile registerfile(clk, regwrite, instr[25:21], instr[20:16], a3, wd3, rd1, rd2);
+        flopr aflopr(clk, reset, rd1, rda);
+        flopr bflopr(clk, reset, rd2, rdb);
+        mux2 #(32) srcamux(pc2, rda, alusrca, srca);
+        mux4 #(32) srcbmux(srcb, four, immext1, immext2, alusrcb, srcb);
+        ALU alu(srca, srcb, alucontrol, aluresult, zero);
+        flopr aluoutflopr(clk, reset, aluresult, aluout);
+        mux4 #(32) pcout(aluresult, aluout, pcjump, none, pcsrc, pc1);
+    end
     
 endmodule
 
@@ -249,11 +263,15 @@ output  [31:0] y);
 assign y = a + b;
 endmodule
 
-module sl2 #(parameter WIDTH = 8)
-    (input  [WIDTH - 1:0] a,
-    output  [WIDTH - 1:0] y);
-    // shift left by 2
-    assign y = {a[WIDTH - 3:0], 2'b00};
+module sl2full(input  [31:0] a,
+output  [31:0] y);
+// shift left by 2
+assign y = {a[29:0], 2'b00};
+endmodule
+
+module sl2(input [25:0]a,
+    output [27:0] b);
+    assign b = {a, 2'b00};
 endmodule
 
 module signext(input  [15:0] a,
