@@ -154,7 +154,7 @@ module maindec(input clk,
                     currstate <= MEMWRITEBACK;
                 end
                 MEMWRITEBACK: begin
-                    controls <= 15'b5010;
+                    controls <= 15'h5010;
                     currstate <= FETCH;
                 end
                 default : begin
@@ -179,7 +179,7 @@ module maindec(input clk,
                     currstate <= MEMWRITE;
                 end
                 MEMWRITE: begin
-                    controols <= 15'b5010;
+                    controls <= 15'b5010;
                     currstate <= FETCH;
                 end
                 default : begin
@@ -235,7 +235,7 @@ module maindec(input clk,
                 endcase
             end
             //addi
-            6'b001000; begin
+            6'b001000: begin
                 case(currstate)
                 FETCH: begin
                     controls <= 15'h0030;
