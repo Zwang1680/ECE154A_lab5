@@ -62,8 +62,10 @@ module datapath(input        clk, reset,
         mux2 #(32) adrin(pc2, aluout, iord, adr);
         flopren #(32) instrin(clk, reset, irwrite, readdata, instr);
         flopr #(32) datain(clk, reset, readdata, data);
-        assign op = instr[31:26];
-        assign funct = instr[5:0];
+        always @(instr)begin
+            assign op = instr[31:26];
+            assign funct = instr[5:0];
+        end
         mux2 #(5) a3in(instr[20:16], instr[15:11], regdst, a3);
         mux2 #(32) wd3in(aluout, data, memtoreg, wd3);
         signext signextend(instr[15:0], immext1);
