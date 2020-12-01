@@ -35,7 +35,7 @@ module controller(input       clk, reset,
                   output [2:0] alucontrol);
 
 wire [1:0] aluop;
-maindec md(clk, reset, op, zero, iord, memwrite,  memtoreg, pcen, irwrite, alusrca, alusrcb, regdst, regwrite, aluop, alucontrol);
+maindec md(clk, reset, op, zero, iord, memwrite,  memtoreg, pcen, irwrite, alusrca, alusrcb, pcsrc, regdst, regwrite, aluop, alucontrol);
 aludec ad(funct, aluop, alucontrol);
  
 endmodule
@@ -103,7 +103,7 @@ module maindec(input clk, reset,
                 input [5:0]op, 
                 input zero, 
                 output reg iord, memwrite,  memtoreg, pcen, irwrite, alusrca, 
-                output reg [1:0]alusrcb,
+                output reg [1:0]alusrcb, [1:0]pcsrc,
                 output reg regdst, regwrite, aluop,
                 output reg [2:0] alucontrol);
 
@@ -111,18 +111,18 @@ module maindec(input clk, reset,
     wire pcwrite;
     assign pcen = (branch & zero) | pcwrite;
 
-    parameter FETCH = 4'b0000
-    parameter DECODE = 4'b0001
-    parameter MEMADR = 4'b0010
-    parameter MEMREAD = 4'b0011
-    parameter MEMWRITEBACK = 4'b0100
-    parameter MEMWRITE = 4'b0101
-    parameter EXECUTE = 4'b0110
-    parameter ALUWRITEBACK = 4'b0111
-    parameter BRANCH = 4'b1000
-    parameter ADDIEXECUTE = 4'b1001
-    parameter ADDIWRITEBACK = 4'b1010
-    parameter JUMP = 4'b1011
+    parameter FETCH = 4'b0000;
+    parameter DECODE = 4'b0001;
+    parameter MEMADR = 4'b0010;
+    parameter MEMREAD = 4'b0011;
+    parameter MEMWRITEBACK = 4'b0100;
+    parameter MEMWRITE = 4'b0101;
+    parameter EXECUTE = 4'b0110;
+    parameter ALUWRITEBACK = 4'b0111;
+    parameter BRANCH = 4'b1000;
+    parameter ADDIEXECUTE = 4'b1001;
+    parameter ADDIWRITEBACK = 4'b1010;
+    parameter JUMP = 4'b1011;
 
     reg [3:0] = currstate, nextstate;
 
