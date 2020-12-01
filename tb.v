@@ -1,8 +1,10 @@
 module testbench();
 reg clk;
 reg reset = 1;
+reg [31:0] writedata, adr;
+reg memwrite;
 // instantiate device to be tested
-top dut (clk, reset);
+top dut (clk, reset, writedata, adr, memwrite);
 //initialize test
 initial begin
     #2;
