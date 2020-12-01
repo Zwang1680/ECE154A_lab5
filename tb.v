@@ -1,5 +1,5 @@
 module testbench();
-reg clk;
+  reg clk;
   reg reset;
   wire [31:0] adr, writedata;
   wire memwrite;
@@ -19,8 +19,8 @@ reg clk;
   // check results
   always @(negedge clk)
     begin
-      if (dut.memwrite) begin
-        if (dut.adr === 84 & dut.writedata === 7) begin
+      if (memwrite) begin
+        if (adr === 84 & writedata === 7) begin
           $display("Simulation succeeded");
           $stop;
         end else if (dut.adr !== 80) begin

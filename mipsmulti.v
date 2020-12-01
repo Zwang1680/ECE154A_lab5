@@ -37,7 +37,12 @@ module controller(input       clk, reset,
 wire [1:0] aluop;
 wire branch, pcwrite;
 
-maindec md(clk, op, memtoreg, regdst, iord, pcsrc, alusrca, alusrcb, irwrite, memwrite, pcwrite, branch, regwrite, aluop);
+maindec md(clk, op, 
+            memtoreg, regdst, iord, pcsrc, 
+            alusrca, 
+            alusrcb, 
+            irwrite, memwrite, pcwrite, branch, regwrite, 
+            aluop);
 aludec ad(funct, aluop, alucontrol);
  
 assign pcen = branch & zero | pcwrite;
@@ -54,7 +59,12 @@ module datapath(input        clk, reset,
                 output [31:0] adr, writedata, 
                 input [31:0] readdata);
 
-    wire [31:0] pc1, pc2, aluout, instr, data, wd3, rd1, rd2, rda, rdb, immext1, immext2, srca, srcb, four, aluresult, none, pcjump;
+    wire [31:0] pc1, pc2, aluout, 
+                instr, data, wd3, 
+                rd1, rd2, rda, 
+                rdb, immext1, immext2, 
+                srca, srcb, four, 
+                aluresult, none, pcjump;
     wire [4:0] a3;
     wire [27:0] jump;
 
@@ -62,27 +72,33 @@ module datapath(input        clk, reset,
     assign funct = instr[5:0];
     assign pcjump = {pc2[31:28], jump};
     assign writedata = rdb;
+    assign four = 32'd4;
 
-    // always @(posedge clk) begin
-        assign four = 'h4;
+        //beginning datapath
+        regfile registerfile(clk, regwrite, instr[25:21], instr[20:16], a3, wd3, rd1, rd2);
+
         flopren #(32) flen1(clk, reset, pcen, pc1, pc2);
         mux2 #(32) adrin(pc2, aluout, iord, adr);
         flopren #(32) instrin(clk, reset, irwrite, readdata, instr);
         flopr #(32) datain(clk, reset, readdata, data);
         mux2 #(5) a3in(instr[20:16], instr[15:11], regdst, a3);
         mux2 #(32) wd3in(aluout, data, memtoreg, wd3);
+        flopr aflopr(clk, reset, rd1, rda);
+        flopr bflopr(clk, reset, rd2, rdb);
         signext signextend(instr[15:0], immext1);
         sl2full immext2sl2(immext1, immext2);
         sl2 jumpin(instr[25:0], jump);
-        regfile registerfile(clk, regwrite, instr[25:21], instr[20:16], a3, wd3, rd1, rd2);
-        flopr aflopr(clk, reset, rd1, rda);
-        flopr bflopr(clk, reset, rd2, rdb);
+        
         mux2 #(32) srcamux(pc2, rda, alusrca, srca);
-        mux4 #(32) srcbmux(rdb, four, immext1, immext2, alusrcb, srcb);
+        mux4 #(32) srcbmux(rdb, four, immext1, immext2, alusrcb, srcb); //mux 4 for srcb
+
+
         ALU alu(srca, srcb, alucontrol, aluresult, zero);
         flopr aluoutflopr(clk, reset, aluresult, aluout);
-        mux4 #(32) pcout(aluresult, aluout, pcjump, none, pcsrc, pc1);
-    // end
+
+        mux4 #(32) pcout(aluresult, aluout, pcjump, none, pcsrc, pc1); //mux3 with blank 4th input for pc'
+
+
     
 endmodule
 
@@ -112,7 +128,7 @@ module maindec(input clk,
                 output wire [1:0] alusrcb,
                 output wire irwrite, memwrite, pcwrite, branch, regwrite,
                 output wire [1:0] aluop);
-
+    //parameters for readability based on FSM
     parameter FETCH = 4'b0000;
     parameter DECODE = 4'b0001;
     parameter MEMADR = 4'b0010;
@@ -128,164 +144,164 @@ module maindec(input clk,
 
     reg [14:0] controls;
     assign {pcwrite, memwrite, irwrite, regwrite, alusrca, branch, iord, 
-    memtoreg, regdst, alusrcb, pcsrc, aluop} = controls;
+    memtoreg, regdst, alusrcb, pcsrc, aluop} = controls; //combining controls into one block per table 4 of lab handout
 
     reg [3:0]currstate;
 
-        always @(posedge clk) begin
-            case(op)
-            //lw
-            6'b100011: begin
-                case(currstate)
-                FETCH: begin
-                    controls <= 15'h0030;
-                    currstate <= DECODE;
-                end
-                DECODE: begin
-                    controls <= 15'h0420;
-                    currstate <= MEMADR;
-                end
-                MEMADR: begin
-                    controls <= 15'h0100;
-                    currstate <= MEMREAD;
-                end
-                MEMREAD: begin
-                    controls <= 15'h0880;
-                    currstate <= MEMWRITEBACK;
-                end
-                MEMWRITEBACK: begin
-                    controls <= 15'h5010;
-                    currstate <= FETCH;
-                end
-                default : begin
-                    controls <= 15'hxxxx;
-                    currstate <= 4'hx;
-                end
-                endcase
+    always @(posedge clk) begin //case statements for FSM
+        case(op)
+        //lw
+        6'b100011: begin
+            case(currstate)
+            FETCH: begin
+                controls <= 15'h0030;
+                currstate <= DECODE;
             end
-            //sw
-            6'b101011: begin
-                case(currstate)
-                FETCH: begin
-                    controls <= 15'h0030;
-                    currstate <= DECODE;
-                end
-                DECODE: begin
-                    controls <= 15'h0420;
-                    currstate <= MEMADR;
-                end
-                MEMADR: begin
-                    controls <= 15'h02100;
-                    currstate <= MEMWRITE;
-                end
-                MEMWRITE: begin
-                    controls <= 15'h5010;
-                    currstate <= FETCH;
-                end
-                default : begin
-                    controls <= 15'hxxxx;
-                    currstate <= 4'hx;
-                end
-                endcase
+            DECODE: begin
+                controls <= 15'h0420;
+                currstate <= MEMADR;
             end
-            // rtype
-            6'b000000: begin
-                case(currstate)
-                FETCH: begin
-                    controls <= 15'h0030;
-                    currstate <= DECODE;
-                end
-                DECODE: begin
-                    controls <= 15'h0402;
-                    currstate <= EXECUTE;
-                end
-                EXECUTE: begin
-                    controls <= 15'h0840;
-                    currstate <= ALUWRITEBACK;
-                end
-                ALUWRITEBACK: begin
-                    controls <= 15'h5010;
-                    currstate <= FETCH;
-                end
-                default : begin
-                    controls <= 15'hxxxx;
-                    currstate <= 4'hx;
-                end
-                endcase
+            MEMADR: begin
+                controls <= 15'h0100;
+                currstate <= MEMREAD;
             end
-            //beq
-            6'b000100: begin
-                case(currstate)
-                FETCH: begin
-                    controls <= 15'h0030;
-                    currstate <= DECODE;
-                end
-                DECODE: begin
-                    controls <= 15'h0605;
-                    currstate <= BRANCH;
-                end
-                BRANCH: begin
-                    controls <= 15'h5010;
-                    currstate <= FETCH;
-                end
-                default : begin
-                    controls <= 15'hxxxx;
-                    currstate <= 4'hx;
-                end
-                endcase
+            MEMREAD: begin
+                controls <= 15'h0880;
+                currstate <= MEMWRITEBACK;
             end
-            //addi
-            6'b001000: begin
-                case(currstate)
-                FETCH: begin
-                    controls <= 15'h0030;
-                    currstate <= DECODE;
-                end
-                DECODE: begin
-                    controls <= 15'h0420;
-                    currstate <= ADDIEXECUTE;
-                end
-                ADDIEXECUTE: begin
-                    controls <= 15'h0800;
-                    currstate <= ADDIWRITEBACK;
-                end
-                ADDIWRITEBACK: begin
-                    controls <= 15'h5010;
-                    currstate <= FETCH;
-                end
-                default : begin
-                    controls <= 15'hxxxx;
-                    currstate <= 4'hx;
-                end
-                endcase
-            end
-            //j
-            6'b000010: begin
-                case(currstate)
-                FETCH: begin
-                    controls <= 15'h0030;
-                    currstate <= DECODE;
-                end
-                DECODE: begin
-                    controls <= 15'h4008;
-                    currstate <= JUMP;
-                end
-                JUMP: begin
-                    controls <= 15'h5010;
-                    currstate <= FETCH;
-                end
-                default : begin
-                    controls <= 15'hxxxx;
-                    currstate <= 4'hx;
-                end
-                endcase
-            end
-            default: begin
+            MEMWRITEBACK: begin
                 controls <= 15'h5010;
                 currstate <= FETCH;
             end
-            endcase 
+            default : begin
+                controls <= 15'hxxxx;
+                currstate <= 4'hx;
+            end
+            endcase
         end
+        //sw
+        6'b101011: begin
+            case(currstate)
+            FETCH: begin
+                controls <= 15'h0030;
+                currstate <= DECODE;
+            end
+            DECODE: begin
+                controls <= 15'h0420;
+                currstate <= MEMADR;
+            end
+            MEMADR: begin
+                controls <= 15'h02100;
+                currstate <= MEMWRITE;
+            end
+            MEMWRITE: begin
+                controls <= 15'h5010;
+                currstate <= FETCH;
+            end
+            default : begin
+                controls <= 15'hxxxx;
+                currstate <= 4'hx;
+            end
+            endcase
+        end
+        // rtype
+        6'b000000: begin
+            case(currstate)
+            FETCH: begin
+                controls <= 15'h0030;
+                currstate <= DECODE;
+            end
+            DECODE: begin
+                controls <= 15'h0402;
+                currstate <= EXECUTE;
+            end
+            EXECUTE: begin
+                controls <= 15'h0840;
+                currstate <= ALUWRITEBACK;
+            end
+            ALUWRITEBACK: begin
+                controls <= 15'h5010;
+                currstate <= FETCH;
+            end
+            default : begin
+                controls <= 15'hxxxx;
+                currstate <= 4'hx;
+            end
+            endcase
+        end
+        //beq
+        6'b000100: begin
+            case(currstate)
+            FETCH: begin
+                controls <= 15'h0030;
+                currstate <= DECODE;
+            end
+            DECODE: begin
+                controls <= 15'h0605;
+                currstate <= BRANCH;
+            end
+            BRANCH: begin
+                controls <= 15'h5010;
+                currstate <= FETCH;
+            end
+            default : begin
+                controls <= 15'hxxxx;
+                currstate <= 4'hx;
+            end
+            endcase
+        end
+        //addi
+        6'b001000: begin
+            case(currstate)
+            FETCH: begin
+                controls <= 15'h0030;
+                currstate <= DECODE;
+            end
+            DECODE: begin
+                controls <= 15'h0420;
+                currstate <= ADDIEXECUTE;
+            end
+            ADDIEXECUTE: begin
+                controls <= 15'h0800;
+                currstate <= ADDIWRITEBACK;
+            end
+            ADDIWRITEBACK: begin
+                controls <= 15'h5010;
+                currstate <= FETCH;
+            end
+            default : begin
+                controls <= 15'hxxxx;
+                currstate <= 4'hx;
+            end
+            endcase
+        end
+        //j
+        6'b000010: begin
+            case(currstate)
+            FETCH: begin
+                controls <= 15'h0030;
+                currstate <= DECODE;
+            end
+            DECODE: begin
+                controls <= 15'h4008;
+                currstate <= JUMP;
+            end
+            JUMP: begin
+                controls <= 15'h5010;
+                currstate <= FETCH;
+            end
+            default : begin
+                controls <= 15'hxxxx;
+                currstate <= 4'hx;
+            end
+            endcase
+        end
+        default: begin
+            controls <= 15'h5010;
+            currstate <= FETCH;
+        end
+        endcase 
+    end
 endmodule
 
 module aludec(input  [5:0] funct,
@@ -295,7 +311,7 @@ module aludec(input  [5:0] funct,
     case(aluop)
     2'b00: alucontrol <= 3'b010; // add (for lw/sw/addi)
     2'b01: alucontrol <= 3'b110; // sub (for beq)
-    2'b11: alucontrol <= 3'b001; // or (for ori)
+    // 2'b11: alucontrol <= 3'b001; // or (for ori)
     default: case(funct) // R-type instructions
     6'b100000: alucontrol <= 3'b010; // add
     6'b100010: alucontrol <= 3'b110; // sub
@@ -358,12 +374,4 @@ module mux4 #(parameter WIDTH = 8)
 input [1:0] sel,               
 output [WIDTH - 1:0] out);
 assign out = sel[1] ? (sel[0] ? d3 : d2) : (sel[0] ? d1 : d0);
-endmodule
-
-module zeroextend
-(input [15:0]a,
-input [2:0]alucontrol,
-input [31:0]srcb,
-output [31:0]b);
-assign b = (alucontrol == 3'b001) ? {{16{1'b0}}, a} : {srcb};
 endmodule
