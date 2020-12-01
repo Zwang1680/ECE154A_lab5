@@ -179,7 +179,7 @@ module maindec(input clk,
                     currstate <= MEMWRITE;
                 end
                 MEMWRITE: begin
-                    controls <= 15'b5010;
+                    controls <= 15'h5010;
                     currstate <= FETCH;
                 end
                 default : begin
