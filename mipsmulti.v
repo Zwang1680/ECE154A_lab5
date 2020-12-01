@@ -106,11 +106,12 @@ endmodule
 
 module maindec(input clk,
                 input [5:0]op, 
-                input zero, 
-                output reg iord, memwrite,  memtoreg, pcen, irwrite, alusrca, 
-                output reg [1:0]alusrcb, [1:0]pcsrc,
-                output reg regdst, regwrite, aluop,
-                output reg [2:0] alucontrol);
+                output wire memtoreg, regdst, iord,
+                output wire [1:0] pcsrc,
+                output wire alusrca,
+                output wire [1:0] alusrcb,
+                output wire irwrite, memwrite, pcwrite, branch, regwrite,
+                output wire [1:0] aluop);
 
     parameter FETCH = 4'b0000;
     parameter DECODE = 4'b0001;
