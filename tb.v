@@ -19,7 +19,7 @@ end
 
 always @(negedge clk)
 begin
-  #100
+  // #100
   // $stop;
   if (dut.memwrite) begin
     if (dut.writedata === -33022) begin

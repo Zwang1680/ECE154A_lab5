@@ -55,28 +55,30 @@ module datapath(input        clk, reset,
     wire [4:0] a3;
     wire [27:0] jump;
 
-
+    assign four = 32'b100;
+    assign pcjump = {pc2[31:28], jump};
+    assign writedata = rdb;
+    assign op = instr[31:26];
+    assign funct = instr[5:0];
     // always @(posedge clk) begin
-        assign four = 'h4;
+        
         flopren #(32) flen1(clk, reset, pcen, pc1, pc2);
         mux2 #(32) adrin(pc2, aluout, iord, adr);
         flopren #(32) instrin(clk, reset, irwrite, readdata, instr);
         flopr #(32) datain(clk, reset, readdata, data);
-        always @(instr)begin
-            assign op = instr[31:26];
-            assign funct = instr[5:0];
-        end
+        
         mux2 #(5) a3in(instr[20:16], instr[15:11], regdst, a3);
         mux2 #(32) wd3in(aluout, data, memtoreg, wd3);
         signext signextend(instr[15:0], immext1);
         sl2full immext2sl2(immext1, immext2);
         sl2 jumpin(instr[25:0], jump);
-        assign pcjump = {pc2[31:28], jump};
+        
         regfile registerfile(clk, regwrite, instr[25:21], instr[20:16], a3, wd3, rd1, rd2);
         flopr aflopr(clk, reset, rd1, rda);
         flopr bflopr(clk, reset, rd2, rdb);
+        
         mux2 #(32) srcamux(pc2, rda, alusrca, srca);
-        mux4 #(32) srcbmux(srcb, four, immext1, immext2, alusrcb, srcb);
+        mux4 #(32) srcbmux(rdb, four, immext1, immext2, alusrcb, srcb);
         ALU alu(srca, srcb, alucontrol, aluresult, zero);
         flopr aluoutflopr(clk, reset, aluresult, aluout);
         mux4 #(32) pcout(aluresult, aluout, pcjump, none, pcsrc, pc1);
