@@ -18,17 +18,15 @@ end
 // check results
 
 always @(negedge clk)
-begin
-  #100
-  // $stop;
-  if (dut.memwrite) begin
-    if (dut.writedata === -33022) begin
-      $display("Simulation succeeded");
-      $stop;
-    end else begin
-      $display("Simulation failed");
-      $stop;
+    begin
+      if (dut.memwrite) begin
+        if (dut.adr === 84 & dut.writedata === 7) begin
+          $display("Simulation succeeded");
+          $stop;
+        end else if (dut.adr !== 80) begin
+          $display("Simulation failed");
+          $stop;
+        end
+      end
     end
-  end
-end
 endmodule
