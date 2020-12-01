@@ -1,23 +1,23 @@
 module testbench();
 reg clk;
-reg reset = 1;
-wire [31:0] writedata, adr;
-wire memwrite;
-// instantiate device to be tested
-top dut (clk, reset, writedata, adr, memwrite);
-//initialize test
-initial begin
-    #11;
-    reset <= ~reset;
-  end
-// generate clock to sequence tests
-always
-begin
-clk <= 1; # 5; clk <= 0; # 5;
-end
-// check results
+  reg reset;
+  wire [31:0] adr, writedata;
+  wire memwrite;
 
-always @(negedge clk)
+  // instantiate device to be tested
+  top dut (clk, reset, writedata, adr, mewrite);
+  // initialize test
+  initial
+    begin
+      reset <= 1; # 4; reset <= 0;
+    end
+  // generate clock to sequence tests
+  always
+    begin
+      clk <= 1; # 5; clk <= 0; # 5;
+    end
+  // check results
+  always @(negedge clk)
     begin
       if (dut.memwrite) begin
         if (dut.adr === 84 & dut.writedata === 7) begin
