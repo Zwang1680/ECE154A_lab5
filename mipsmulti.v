@@ -111,8 +111,6 @@ module maindec(input clk, reset,
     reg branch;
     reg pcwrite;
 
-    
-
     parameter FETCH = 4'b0000;
     parameter DECODE = 4'b0001;
     parameter MEMADR = 4'b0010;
