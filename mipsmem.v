@@ -10,7 +10,7 @@ module mem(input        clk, we,
   // initialize memory with instructions
   initial
     begin
-      $readmemh("memfile.dat",RAM);  // "memfile.dat" contains your instructions in hex
+      $readmemh("memfilelab5.dat",RAM);  // "memfile.dat" contains your instructions in hex
                                      
     end
 

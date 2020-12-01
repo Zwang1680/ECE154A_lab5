@@ -54,21 +54,22 @@ module datapath(input        clk, reset,
     wire [31:0] pc1, pc2, aluout, instr, data, wd3, rd1, rd2, rda, rdb, immext1, immext2, srca, srcb, four, aluresult, none, pcjump;
     wire [4:0] a3;
     wire [27:0] jump;
-    assign four = 'h4;
 
-    always @(posedge clk) begin
-        flopren #(32) pc2(clk, reset, pcen, pc1, pc2);
+
+    // always @(posedge clk) begin
+        assign four = 'h4;
+        flopren #(32) flen1(clk, reset, pcen, pc1, pc2);
         mux2 #(32) adrin(pc2, aluout, iord, adr);
         flopren #(32) instrin(clk, reset, irwrite, readdata, instr);
         flopr #(32) datain(clk, reset, readdata, data);
-        op <= instr[31:26];
-        funct <= instr[5:0];
+        assign op = instr[31:26];
+        assign funct = instr[5:0];
         mux2 #(5) a3in(instr[20:16], instr[15:11], regdst, a3);
         mux2 #(32) wd3in(aluout, data, memtoreg, wd3);
         signext signextend(instr[15:0], immext1);
         sl2full immext2sl2(immext1, immext2);
         sl2 jumpin(instr[25:0], jump);
-        pcjump = {pc2[31:28], jump};
+        assign pcjump = {pc2[31:28], jump};
         regfile registerfile(clk, regwrite, instr[25:21], instr[20:16], a3, wd3, rd1, rd2);
         flopr aflopr(clk, reset, rd1, rda);
         flopr bflopr(clk, reset, rd2, rdb);
@@ -77,7 +78,7 @@ module datapath(input        clk, reset,
         ALU alu(srca, srcb, alucontrol, aluresult, zero);
         flopr aluoutflopr(clk, reset, aluresult, aluout);
         mux4 #(32) pcout(aluresult, aluout, pcjump, none, pcsrc, pc1);
-    end
+    // end
     
 endmodule
 
@@ -107,9 +108,10 @@ module maindec(input clk, reset,
                 output reg regdst, regwrite, aluop,
                 output reg [2:0] alucontrol);
 
-    wire branch;
-    wire pcwrite;
-    assign pcen = (branch & zero) | pcwrite;
+    reg branch;
+    reg pcwrite;
+
+    
 
     parameter FETCH = 4'b0000;
     parameter DECODE = 4'b0001;
@@ -124,9 +126,10 @@ module maindec(input clk, reset,
     parameter ADDIWRITEBACK = 4'b1010;
     parameter JUMP = 4'b1011;
 
-    reg [3:0] = currstate, nextstate;
+    reg [3:0]currstate, nextstate;
 
     always @(posedge clk) begin
+        assign pcen = (branch & zero) | pcwrite;
         if (reset) currstate <= FETCH;
         else currstate <= nextstate;
     end
@@ -172,6 +175,9 @@ module maindec(input clk, reset,
             alucontrol = 3'b000;
             pcsrc = 2'b00;
             pcen = 1'b0;
+            // branch = 1'b0;
+
+
             case (currstate)
                 FETCH: begin
                     iord = 1'b0;
@@ -284,8 +290,8 @@ module flopr #(parameter WIDTH = 8)
 input  [WIDTH-1:0] d,
 output reg [WIDTH-1:0] q);
 always @(posedge clk, posedge reset)
-if (reset) q <= 0;
-else q <= d;
+    if (reset) q <= 0;
+    else q <= d;
 endmodule
 
 module flopren #(parameter WIDTH = 8)
@@ -293,8 +299,8 @@ module flopren #(parameter WIDTH = 8)
 input  [WIDTH-1:0] d,
 output reg [WIDTH-1:0] q);
 always @(posedge clk, posedge reset)
-if (reset) q <= 0;
-else if (en) q <= d;
+    if (reset) q <= 0;
+    else if (en) q <= d;
 endmodule
 
 module mux2 #(parameter WIDTH = 8)
@@ -305,16 +311,16 @@ assign y = s ? d1 : d0;
 endmodule
 
 module mux4 #(parameter WIDTH = 8)
-(
-    input [WIDTH - 1:0] d0, d1, d2, d3,              
-    input [1:0] sel,               
-    output [WIDTH - 1:0] out);
-    assign out = sel[1] ? (sel[0] ? d3 : d2) : (sel[0] ? d1 : d0);
+(input [WIDTH - 1:0] d0, d1, d2, d3,              
+input [1:0] sel,               
+output [WIDTH - 1:0] out);
+assign out = sel[1] ? (sel[0] ? d3 : d2) : (sel[0] ? d1 : d0);
 endmodule
 
-module zeroextend(input [15:0]a,
-                input [2:0]alucontrol,
-                input [31:0]srcb,
-                output [31:0]b);
-    assign b = (alucontrol == 3'b001) ? {{16{1'b0}}, a} : {srcb};
+module zeroextend
+(input [15:0]a,
+input [2:0]alucontrol,
+input [31:0]srcb,
+output [31:0]b);
+assign b = (alucontrol == 3'b001) ? {{16{1'b0}}, a} : {srcb};
 endmodule
