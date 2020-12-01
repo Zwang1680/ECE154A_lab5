@@ -174,8 +174,9 @@ module maindec(input clk, reset,
             alusrcb = 2'b00;
             alucontrol = 3'b000;
             pcsrc = 2'b00;
-            pcen = 1'b0;
-            // branch = 1'b0;
+            pcwrite = 1'b0;
+            //pcen = 1'b0;
+            branch = 1'b0;
 
 
             case (currstate)
