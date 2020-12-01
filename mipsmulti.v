@@ -58,6 +58,8 @@ module datapath(input        clk, reset,
 
     // always @(posedge clk) begin
         assign four = 'h4;
+        flopren #(32) flen1(clk, reset, pcen, pc1, pc2);
+        mux2 #(32) adrin(pc2, aluout, iord, adr);
         flopren #(32) instrin(clk, reset, irwrite, readdata, instr);
         flopr #(32) datain(clk, reset, readdata, data);
         assign op = instr[31:26];
@@ -76,8 +78,6 @@ module datapath(input        clk, reset,
         ALU alu(srca, srcb, alucontrol, aluresult, zero);
         flopr aluoutflopr(clk, reset, aluresult, aluout);
         mux4 #(32) pcout(aluresult, aluout, pcjump, none, pcsrc, pc1);
-        flopren #(32) flen1(clk, reset, pcen, pc1, pc2);
-        mux2 #(32) adrin(pc2, aluout, iord, adr);
     // end
     
 endmodule
