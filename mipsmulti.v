@@ -83,8 +83,8 @@ module datapath(input        clk, reset,
         flopr #(32) datain(clk, reset, readdata, data);
         mux2 #(5) a3in(instr[20:16], instr[15:11], regdst, a3);
         mux2 #(32) wd3in(aluout, data, memtoreg, wd3);
-        flopr aflopr(clk, reset, rd1, rda);
-        flopr bflopr(clk, reset, rd2, rdb);
+        flopr #(32) aflopr(clk, reset, rd1, rda);
+        flopr #(32) bflopr(clk, reset, rd2, rdb);
         signext signextend(instr[15:0], immext1);
         sl2full immext2sl2(immext1, immext2);
         sl2 jumpin(instr[25:0], jump);
@@ -94,7 +94,7 @@ module datapath(input        clk, reset,
 
 
         ALU alu(srca, srcb, alucontrol, aluresult, zero);
-        flopr aluoutflopr(clk, reset, aluresult, aluout);
+        flopr #(32) aluoutflopr(clk, reset, aluresult, aluout);
 
         mux4 #(32) pcout(aluresult, aluout, pcjump, none, pcsrc, pc1); //mux3 with blank 4th input for pc'
 
